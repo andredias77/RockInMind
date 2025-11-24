@@ -1,0 +1,72 @@
+import numpy as np
+import sounddevice as sd
+
+# frequências padrão (Hz)
+NOTAS_FREQ = {
+    "SOL": 98.00,
+    "MI": 82.41,
+    "RE": 73.42,
+    "DO": 65.41,
+    "SI": 61.74,
+    "LA": 55.00,
+    "A": 54,
+    "B": 53
+
+}
+
+# toca som de guitarra em thread separada
+
+def guitarra_sintetica(freqs, duracao=2, volume=0.5):
+    fs = 44100
+    t = np.linspace(0, duracao, int(fs * duracao), False)
+
+    if not isinstance(freqs, (list, tuple)):
+        freqs = [freqs]
+
+    # mistura ondas serrilhadas e triangulares para um timbre mais agressivo
+    onda = np.zeros_like(t)
+    for f in freqs:
+        seno = np.sin(2 * np.pi * f * t)
+        serra = 2 * (t * f % 1) - 1
+        tri = 2 * np.abs(serra) - 1
+        onda += 0.6 * serra + 0.4 * tri + 0.2 * seno
+
+    onda /= len(freqs)
+
+    # Envelope ADSR
+    ataque, decaimento, sustain, release = 0.005, 0.08, 0.6, 0.1
+    env = np.ones_like(t)
+    a_n = int(ataque * fs)
+    d_n = int(decaimento * fs)
+    r_n = int(release * fs)
+
+    env[:a_n] = np.linspace(0, 1, a_n)
+    env[a_n:a_n+d_n] = np.linspace(1, sustain, d_n)
+    env[a_n+d_n:-r_n] = sustain
+    env[-r_n:] = np.linspace(sustain, 0, r_n)
+    onda *= env
+
+    # --- Distorção mais "metal" ---
+    ganho = 15
+    onda = np.tanh(ganho * onda)
+
+    # --- Filtro passa-baixas + passa-altas (simula caixa Marshall) ---
+    # passa-altas leve (tira grave embolado)
+    for i in range(1, len(onda)):
+        onda[i] = 0.8 * (onda[i] - 0.9 * onda[i-1])
+    # passa-baixas suave (remove chiado)
+    alpha = 0.1
+    for i in range(1, len(onda)):
+        onda[i] = onda[i-1] + alpha * (onda[i] - onda[i-1])
+
+    # --- Chorus leve (efeito estéreo) ---
+    delay = int(0.003 * fs)
+    mix = 0.3
+    onda_stereo = np.zeros((len(onda), 2))
+    onda_stereo[:, 0] = onda  # canal L
+    onda_stereo[:, 1] = np.roll(onda, delay) * mix + onda * (1 - mix)  # canal R
+
+    # --- Normaliza e toca ---
+    onda_stereo = np.clip(onda_stereo * volume, -1, 1)
+    sd.play(onda_stereo, fs)
+    sd.wait() 
