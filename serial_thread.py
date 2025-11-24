@@ -18,7 +18,7 @@ class SerialThread(QThread):
             self.ser = serial.Serial(
                 self.port,
                 self.baud,
-                timeout=0.1,
+                timeout=0,
                 parity=serial.PARITY_NONE,     # <-- SEM PARIDADE
                 bytesize=serial.EIGHTBITS,
                 stopbits=serial.STOPBITS_ONE
@@ -30,7 +30,7 @@ class SerialThread(QThread):
                     msg = self.ser.readline().decode(errors="ignore").strip()
                     if msg:
                         self.data_received.emit(msg)
-                time.sleep(0.02)
+                time.sleep(0.005)
         except Exception as e:
             print(f"[Serial] Erro: {e}")
             if self.simulate_if_error:

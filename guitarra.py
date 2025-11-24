@@ -11,7 +11,6 @@ NOTAS_FREQ = {
     "LA": 55.00,
     "A": 54,
     "B": 53
-
 }
 
 # toca som de guitarra em thread separada
@@ -69,4 +68,56 @@ def guitarra_sintetica(freqs, duracao=2, volume=0.5):
     # --- Normaliza e toca ---
     onda_stereo = np.clip(onda_stereo * volume, -1, 1)
     sd.play(onda_stereo, fs)
-    sd.wait() 
+
+import numpy as np
+
+def gerar_onda(freq, duracao=1.5, volume=0.5):
+    fs = 44100
+    t = np.linspace(0, duracao, int(fs * duracao), False)
+
+    # ondas
+    seno = np.sin(2 * np.pi * freq * t)
+    serra = 2 * (t * freq % 1) - 1
+    tri = 2 * np.abs(serra) - 1
+
+    onda = 0.6 * serra + 0.4 * tri + 0.2 * seno
+
+    # ADSR
+    ataque, decaimento, sustain, release = 0.005, 0.08, 0.6, 0.1
+    env = np.ones_like(t)
+    fs_a = int(ataque * fs)
+    fs_d = int(decaimento * fs)
+    fs_r = int(release * fs)
+
+    env[:fs_a] = np.linspace(0, 1, fs_a)
+    env[fs_a:fs_a+fs_d] = np.linspace(1, sustain, fs_d)
+    env[fs_a+fs_d:-fs_r] = sustain
+    env[-fs_r:] = np.linspace(sustain, 0, fs_r)
+    onda *= env
+
+    # distorção
+    onda = np.tanh(15 * onda)
+
+    # filtro passa-baixas
+    alpha = 0.1
+    for i in range(1, len(onda)):
+        onda[i] = onda[i-1] + alpha * (onda[i] - onda[i-1])
+
+    # chorus estéreo
+    delay = int(0.003 * fs)
+    mix = 0.3
+    onda_stereo = np.zeros((len(onda), 2))
+    onda_stereo[:, 0] = onda
+    onda_stereo[:, 1] = np.roll(onda, delay) * mix + onda * (1 - mix)
+
+    # normaliza
+    onda_stereo = np.clip(onda_stereo * volume, -1, 1)
+
+    return onda_stereo, fs
+
+SONS = {}
+for nota, freq in NOTAS_FREQ.items():
+    onda, fs = gerar_onda(freq)
+    SONS[nota] = (onda, fs)
+
+

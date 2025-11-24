@@ -1,10 +1,12 @@
 from config import TAMANHO
+from seleciona_musica import Musica
 class Jogo:
 
     def __init__(self):
         self.sequencia_atual = []
         self.jogadas = []
         self.livre = False
+        self.indice_musica = 1
 
     def iniciar_rodada(self, sequencia):
         # salva só o pedaço que deve ser tocado nessa rodada
@@ -23,7 +25,7 @@ class Jogo:
         correta = self.sequencia_atual[indice][0]  # "numero"
         self.jogadas.append(numero)
 
-        if (correta and len(self.jogadas) == TAMANHO[0]):
+        if (correta and len(self.jogadas) == TAMANHO[self.indice_musica]):
             return 2
 
         return numero == correta

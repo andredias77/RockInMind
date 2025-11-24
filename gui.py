@@ -2,20 +2,20 @@ from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QComboBox, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
 from serial_thread import SerialThread
-from config import NUMERO_PARA_NOTA, CORES_NOTAS, CORES_TITULO
-from guitarra import NOTAS_FREQ, guitarra_sintetica
-from config import SEQUENCIAS
+from config import NUMERO_PARA_NOTA, CORES_NOTAS, CORES_TITULO, SEQUENCIAS
+from guitarra import SONS
 import threading, time
 import sounddevice as sd
 from jogo import Jogo
 import string
 import time
-
+from seleciona_musica import Musica
 
 class RockInMindGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.jogo = Jogo()
+        self.musica = Musica()
 
         self.setWindowTitle("Rock In Mind 🎵")
         self.setFixedSize(650, 650)
@@ -43,11 +43,11 @@ class RockInMindGUI(QWidget):
         self.serial_thread.data_received.connect(self.receive_serial)
         self.serial_thread.start()
 
-
         # ---------- TIMER TÍTULO ----------
         self.timer = QTimer()
         self.timer.timeout.connect(self.mudar_cor_titulo)
         self.timer.start(400)
+
 
     # ======================================================
     #  TELA 1 — MENU PRINCIPAL
@@ -69,6 +69,9 @@ class RockInMindGUI(QWidget):
         self.musica_combo = QComboBox()
         self.musica_combo.addItems(["Clássico 1", "Clássico 2", "Personalizada"])
         self.musica_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
+        self.musica_combo.currentTextChanged.connect(self.musica.guardar_indice_musica)
+        self.jogo.indice_musica = self.musica.indice_musica
+
 
         # --- NOVO BOTÃO ---
         self.botao_serial = QPushButton("Enviar Sinal '!' (Serial)")
@@ -221,7 +224,8 @@ class RockInMindGUI(QWidget):
     def tocar_sequencia(self, indice):
         time.sleep(0.5)
         indice = int(indice)
-        sequencia = SEQUENCIAS.get(indice)
+        idx_musica = self.musica.indice_musica
+        sequencia = SEQUENCIAS.get(idx_musica)
         if not sequencia:
             print(f"[Sequência] {indice} não encontrada")
             return
@@ -253,9 +257,11 @@ class RockInMindGUI(QWidget):
                 if estado == "H":
                     btn.setStyleSheet("background-color: white; color: black; border-radius: 20px; font-weight: bold;")
                     # toca a nota
-                    freq = NOTAS_FREQ.get(nota)
-                    if freq:
-                        threading.Thread(target=guitarra_sintetica, args=(freq,), daemon=True).start()
+                    onda, fs = SONS[nota]
+                    sd.play(onda, fs)
+                    # freq = NOTAS_FREQ.get(nota)
+                    # if freq:
+                    #     threading.Thread(target=guitarra_sintetica, args=(freq,), daemon=True).start()
                 elif estado == "L":
                     btn.setStyleSheet(f"background-color: {cor_original}; color: black; border-radius: 20px; font-weight: bold;")
                     sd.stop()
