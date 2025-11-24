@@ -207,6 +207,8 @@ class RockInMindGUI(QWidget):
         if (msg.endswith("L")) and len(msg) > 1:
             correta = self.jogo.registrar_jogada(msg)
             self.play_note(msg)
+            if correta == 2:
+                self.enviar_serial("T")
             if correta:
                 self.enviar_serial("A")
             else: 

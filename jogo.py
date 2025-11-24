@@ -1,3 +1,4 @@
+from config import TAMANHO
 class Jogo:
 
     def __init__(self):
@@ -22,7 +23,8 @@ class Jogo:
         correta = self.sequencia_atual[indice][0]  # "numero"
         self.jogadas.append(numero)
 
-        print ("jogadas", len(self.jogadas), "/ sequencia", len(self.sequencia_atual))
+        if (correta and len(self.jogadas) == TAMANHO[0]):
+            return 2
 
         return numero == correta
         
