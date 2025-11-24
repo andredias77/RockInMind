@@ -10,12 +10,14 @@ from jogo import Jogo
 import string
 import time
 from seleciona_musica import Musica
+from queue import Queue
 
 class RockInMindGUI(QWidget):
     def __init__(self):
         super().__init__()
         self.jogo = Jogo()
         self.musica = Musica()
+        self.fila_serial = Queue()
 
         self.setWindowTitle("Rock In Mind 🎵")
         self.setFixedSize(650, 650)
@@ -74,7 +76,7 @@ class RockInMindGUI(QWidget):
 
 
         # --- NOVO BOTÃO ---
-        self.botao_serial = QPushButton("Enviar Sinal '!' (Serial)")
+        self.botao_serial = QPushButton("Iniciar modo Livre")
         self.botao_serial.setFixedSize(250, 40)
         self.botao_serial.setStyleSheet("QPushButton { background-color: #555; color: white; border-radius: 10px; font-weight: bold; }")
         
@@ -164,10 +166,12 @@ class RockInMindGUI(QWidget):
     def receive_serial(self, msg):
         msg = msg.strip()
         msg = self.limpar(msg)
+        self.fila_serial.put(msg)
 
         print("[RECEBIDO SERIAL]:", msg)
 
         if msg.endswith("H") and len(msg) > 1:
+            print(msg)
             self.play_note(msg)      
             return
         
@@ -219,6 +223,23 @@ class RockInMindGUI(QWidget):
                 if self.jogo.get_modo():
                     self.stacked.setCurrentIndex(0)        
             return
+        
+        if msg.endswith("L") and len(msg) == 1:
+            low = self.fila_serial.get()
+            digito = self.fila_serial.get()
+            mensagem = str(digito) + str(low)
+            correta = self.jogo.registrar_jogada(mensagem)
+            self.play_note(mensagem)
+            if correta == 2:
+                self.enviar_serial("T")
+            if correta:
+                self.enviar_serial("A")
+            else: 
+                self.enviar_serial("E")
+                if self.jogo.get_modo():
+                    self.stacked.setCurrentIndex(0)        
+            return
+            
 
     
     def tocar_sequencia(self, indice):
@@ -237,10 +258,11 @@ class RockInMindGUI(QWidget):
         print(f"[Sequência] Tocando T{indice}")
 
         for numero, duracao in sequencia_cortada:
-            msg = f"{numero}H"   # ou o formato que seu play_note espera
+            msg = f"{int(numero)}H"   # ou o formato que seu play_note espera
+            print (msg)
             self.play_note(msg)
             time.sleep(duracao)
-            msg = f"{numero}L"
+            msg = f"{int(numero)}L"
             self.play_note(msg)
         time.sleep(0.1)
         self.enviar_serial("F")
