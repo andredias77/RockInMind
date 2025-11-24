@@ -1,3 +1,4 @@
+from config import SEQUENCIAS
 class Jogo:
 
     def __init__(self):
@@ -21,8 +22,6 @@ class Jogo:
 
         correta = self.sequencia_atual[indice][0]  # "numero"
         self.jogadas.append(numero)
-
-        print ("jogadas", len(self.jogadas), "/ sequencia", len(self.sequencia_atual))
 
         return numero == correta
         
