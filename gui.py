@@ -19,8 +19,12 @@ class RockInMindGUI(QWidget):
         self.musica = Musica()
         self.fila_serial = Queue()
 
+        # --- música padrão ---
+        self.musica.guardar_indice_musica("Clássico 1")
+        self.jogo.indice_musica = self.musica.indice_musica
+
         self.setWindowTitle("Rock In Mind 🎵")
-        self.setFixedSize(650, 650)
+        #self.setFixedSize(650, 650)
         self.setStyleSheet("background-color: black; color: white;")
 
         self.numero_para_nota = NUMERO_PARA_NOTA
@@ -31,9 +35,13 @@ class RockInMindGUI(QWidget):
         self.stacked = QStackedWidget()
         self.tela_menu = self.criar_tela_menu()
         self.tela_jogo = self.criar_tela_jogo()
+        self.tela_acertou = self.criar_tela_acertou()
+        self.tela_errou = self.criar_tela_errou()
 
         self.stacked.addWidget(self.tela_menu)  # índice 0
         self.stacked.addWidget(self.tela_jogo)  # índice 1
+        self.stacked.addWidget(self.tela_acertou)  # índice 2
+        self.stacked.addWidget(self.tela_errou)    # índice 3
         self.stacked.setCurrentIndex(0)
 
         layout_principal = QVBoxLayout()
@@ -49,6 +57,9 @@ class RockInMindGUI(QWidget):
         self.timer = QTimer()
         self.timer.timeout.connect(self.mudar_cor_titulo)
         self.timer.start(400)
+
+        self.atualizar_botoes()
+        self.showMaximized()      # ocupa a tela toda
 
 
     # ======================================================
@@ -71,8 +82,10 @@ class RockInMindGUI(QWidget):
         self.musica_combo = QComboBox()
         self.musica_combo.addItems(["Clássico 1", "Clássico 2", "Personalizada"])
         self.musica_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
-        self.musica_combo.currentTextChanged.connect(self.musica.guardar_indice_musica)
-        self.jogo.indice_musica = self.musica.indice_musica
+        
+        #muda a música
+        self.musica_combo.currentTextChanged.connect(self.on_musica_change)
+
 
 
         # --- NOVO BOTÃO ---
@@ -117,44 +130,104 @@ class RockInMindGUI(QWidget):
         layout = QVBoxLayout()
 
         self.title = QLabel("Rock In Mind")
-        self.title.setFont(QFont("Arial", 28, QFont.Bold))
+        self.title.setFont(QFont("Arial", 36, QFont.Bold))
         self.title.setAlignment(Qt.AlignCenter)
 
-        notas_layout = QGridLayout()
-        nomes_notas = list(NUMERO_PARA_NOTA.values())
+        notas_layout = QHBoxLayout()
         self.botoes_notas = {}
 
-        for i, (nome, cor) in enumerate(zip(nomes_notas, CORES_NOTAS)):
-            btn = QPushButton(nome)
+        for i, cor in enumerate(CORES_NOTAS):
+            btn = QPushButton(" --- ")
             btn.setFixedSize(120, 120)
-            btn.setStyleSheet(f"QPushButton {{ background-color: {cor}; border-radius: 20px; color: black; font-weight: bold; font-size: 16px; }}")
-            self.botoes_notas[nome.upper()] = (btn, cor)
-            notas_layout.addWidget(btn, i // 4, i % 4)
+            btn.setStyleSheet(
+                f"QPushButton {{ background-color: {cor}; border-radius: 20px; "
+                "color: black; font-weight: bold; font-size: 16px; }}"
+            )
+            notas_layout.addWidget(btn)
+            self.botoes_notas[str(i+1)] = (btn, cor)
 
-        # --- NOVO BOTÃO ---
-        self.botao_serial = QPushButton("VOLTAR")
-        self.botao_serial.setFixedSize(250, 40)
-        self.botao_serial.setStyleSheet("QPushButton { background-color: #555; color: white; border-radius: 10px; font-weight: bold; }")
-        
-        # LINHA CORRETA (CONECTA a função para execução posterior):
-        self.botao_serial.clicked.connect(lambda: (
+        self.botao_voltar = QPushButton("VOLTAR")
+        self.botao_voltar.setFixedSize(250, 40)
+        self.botao_voltar.setStyleSheet(
+            "QPushButton { background-color: #555; color: white; border-radius: 10px; font-weight: bold; }"
+        )
+        self.botao_voltar.clicked.connect(lambda: (
             self.stacked.setCurrentIndex(0),
             self.jogo.guarda_modo("jogo")
         ))
-        
-        # Layout horizontal para centralizar o botão 👈 NOVAS LINHAS
-        h_layout_botao = QHBoxLayout()
-        h_layout_botao.addStretch()
-        h_layout_botao.addWidget(self.botao_serial)
-        # O PONTO DE CORREÇÃO: Adicionar o layout do botão aqui
-        layout.addSpacing(40) # Adiciona um espaçamento antes do botão
-        layout.addLayout(h_layout_botao) # ADICIONA O BOTÃO AO LAYOUT PRINCIPAL
-        h_layout_botao.addStretch()
-        # ------------------
 
+        h_botao = QHBoxLayout()
+        h_botao.addStretch()
+        h_botao.addWidget(self.botao_voltar)
+        h_botao.addStretch()
+
+        layout.addSpacing(10)
         layout.addWidget(self.title)
-        layout.addSpacing(20)
+        layout.addSpacing(30)
         layout.addLayout(notas_layout)
+        layout.addStretch()
+        layout.addLayout(h_botao)
+
+        tela.setLayout(layout)
+        return tela
+    
+    def criar_tela_acertou(self):
+        tela = QWidget()
+        tela.setStyleSheet("background-color: #002200; color: white;")
+
+        layout = QVBoxLayout()
+
+        titulo = QLabel("✔ ACERTOU! ✔")
+        titulo.setFont(QFont("Arial", 30, QFont.Bold))
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("color: #00FF55;")
+
+        caveira = QLabel("💀")
+        caveira.setFont(QFont("Arial", 140))
+        caveira.setAlignment(Qt.AlignCenter)
+
+        botao = QPushButton("CONTINUAR")
+        botao.setFixedSize(250, 45)
+        botao.setStyleSheet("QPushButton { background-color: #00AA55; color: white; font-weight: bold; border-radius: 10px; }")
+        botao.clicked.connect(lambda: self.stacked.setCurrentIndex(0))
+
+        layout.addStretch()
+        layout.addWidget(titulo)
+        layout.addSpacing(10)
+        layout.addWidget(caveira)
+        layout.addSpacing(30)
+        layout.addWidget(botao, alignment=Qt.AlignCenter)
+        layout.addStretch()
+
+        tela.setLayout(layout)
+        return tela
+    
+    def criar_tela_errou(self):
+        tela = QWidget()
+        tela.setStyleSheet("background-color: #220000; color: white;")
+
+        layout = QVBoxLayout()
+
+        titulo = QLabel("✘ ERROU! ✘")
+        titulo.setFont(QFont("Arial", 30, QFont.Bold))
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("color: #FF3333;")
+
+        caveira = QLabel("💀")
+        caveira.setFont(QFont("Arial", 140))
+        caveira.setAlignment(Qt.AlignCenter)
+
+        botao = QPushButton("CONTINUAR")
+        botao.setFixedSize(250, 45)
+        botao.setStyleSheet("QPushButton { background-color: #AA0000; color: white; font-weight: bold; border-radius: 10px; }")
+        botao.clicked.connect(lambda: self.stacked.setCurrentIndex(0))
+
+        layout.addStretch()
+        layout.addWidget(titulo)
+        layout.addSpacing(10)
+        layout.addWidget(caveira)
+        layout.addSpacing(30)
+        layout.addWidget(botao, alignment=Qt.AlignCenter)
         layout.addStretch()
 
         tela.setLayout(layout)
@@ -173,6 +246,14 @@ class RockInMindGUI(QWidget):
         if msg.endswith("H") and len(msg) > 1:
             print(msg)
             self.play_note(msg)      
+            return
+        
+        if msg.endswith("H") and len(msg) == 1:
+            print(msg)
+            low = self.fila_serial.get()
+            digito = self.fila_serial.get()
+            mensagem = str(digito) + str(low)
+            self.play_note(mensagem)      
             return
         
         if (msg.endswith("L")) and len(msg) == 4:
@@ -199,11 +280,8 @@ class RockInMindGUI(QWidget):
         if msg[0] == "#":
             print("[Serial] Iniciando jogo → indo para tela 2")
             self.stacked.setCurrentIndex(1)
-            msg2 = msg[1:]        # "TXX"
-            indice = msg[2:]      # "XX"
-            print("msg2 =", msg2)
-            print("indice =", indice)
-            self.tocar_sequencia(indice)
+            idx_musica = str(self.musica.indice_musica)
+            self.enviar_serial(idx_musica)
             return    
 
         if msg.startswith("T") and len(msg) > 1:
@@ -215,13 +293,14 @@ class RockInMindGUI(QWidget):
             correta = self.jogo.registrar_jogada(msg)
             self.play_note(msg)
             if correta == 2:
+                self.stacked.setCurrentIndex(2)
                 self.enviar_serial("T")
             if correta:
                 self.enviar_serial("A")
             else: 
                 self.enviar_serial("E")
                 if self.jogo.get_modo():
-                    self.stacked.setCurrentIndex(0)        
+                    self.stacked.setCurrentIndex(3)        
             return
         
         if msg.endswith("L") and len(msg) == 1:
@@ -243,39 +322,53 @@ class RockInMindGUI(QWidget):
 
     
     def tocar_sequencia(self, indice):
-        time.sleep(0.5)
         indice = int(indice)
         idx_musica = self.musica.indice_musica
         sequencia = SEQUENCIAS.get(idx_musica)
         if not sequencia:
             print(f"[Sequência] {indice} não encontrada")
             return
-        
-        limite = int(indice) + 1
+
+        limite = indice + 1
         sequencia_cortada = sequencia[:limite]
         self.jogo.iniciar_rodada(sequencia_cortada)
 
         print(f"[Sequência] Tocando T{indice}")
 
+        # lista de eventos que o QTimer vai executar sem travar a UI
+        eventos = []
+
         for numero, duracao in sequencia_cortada:
-            msg = f"{int(numero)}H"   # ou o formato que seu play_note espera
-            print (msg)
+            numero = int(numero)
+            eventos.append((f"{numero}H", duracao))   # aperta
+            eventos.append((f"{numero}L", 0.15))      # solta
+
+        # função recursiva para tocar cada evento com singleShot
+        def tocar_proximo(i):
+            if i >= len(eventos):
+                self.enviar_serial("F")
+                return
+
+            msg, dur = eventos[i]
             self.play_note(msg)
-            time.sleep(duracao)
-            msg = f"{int(numero)}L"
-            self.play_note(msg)
-        time.sleep(0.1)
-        self.enviar_serial("F")
+
+            # chama o próximo após o intervalo
+            QTimer.singleShot(int(dur * 1000), lambda: tocar_proximo(i + 1))
+
+        # inicia a sequência com pequeno atraso
+        QTimer.singleShot(300, lambda: tocar_proximo(0))
+
 
     def play_note(self, msg):
         numero = msg[:-1]  # tudo menos o último caractere
         estado = msg[-1].upper()  # último caractere (H ou L)
         
-        nota = self.numero_para_nota.get(numero)
+        numero_musica = self.musica.indice_musica  
+        nota = NUMERO_PARA_NOTA[numero_musica].get(numero)
         if nota:
             nota = nota.upper()
-            if nota in self.botoes_notas:
-                btn, cor_original = self.botoes_notas[nota]
+            if numero in self.botoes_notas:
+                btn, cor_original = self.botoes_notas[numero]
                 if estado == "H":
                     btn.setStyleSheet("background-color: white; color: black; border-radius: 20px; font-weight: bold;")
                     # toca a nota
@@ -307,3 +400,46 @@ class RockInMindGUI(QWidget):
                     print("Mensagem serial enviada", msg)
                 except Exception as e:
                     print("[Serial] Erro ao enviar:", e)
+
+    def on_musica_change(self, texto):
+        self.musica.guardar_indice_musica(texto)
+        self.jogo.indice_musica = self.musica.indice_musica
+        self.atualizar_botoes()
+    
+    def atualizar_botoes(self):
+        idx = self.musica.indice_musica   # 1, 2 ou 3
+        notas = NUMERO_PARA_NOTA[idx]     # pega o mapa daquela música
+
+        # para cada botão 1..8, mude o texto
+        for numero, (btn, cor) in self.botoes_notas.items():
+            nome_nota = notas[numero]   # ex: "DO1", "RE2"...
+            btn.setText(nome_nota)
+
+    def resizeEvent(self, event):
+        # chamado sempre que a janela é redimensionada
+        largura = self.width()
+        altura = self.height()
+
+        # calcula tamanho base para os botões (8 botões lado a lado)
+        # deixa um pequeno padding (20 px) entre eles
+        btn_width = max(80, (largura - 200) // max(1, len(self.botoes_notas)))  # largura mínima 80
+        btn_height = max(80, int(altura * 0.25))  # não exagere na altura
+
+        # limita para não ficar gigante
+        btn_size = min(btn_width, btn_height)
+
+        # atualiza tamanho dos botões (se já foram criados)
+        for numero, (btn, cor) in getattr(self, "botoes_notas", {}).items():
+            btn.setFixedSize(btn_size, btn_size)
+            # opcional: ajustar tamanho da fonte do texto do botão
+            font = btn.font()
+            font.setPointSize(max(10, btn_size // 6))
+            btn.setFont(font)
+
+        # ajusta fonte do título com base na altura da janela
+        if hasattr(self, "title"):
+            f = self.title.font()
+            f.setPointSize(max(18, altura // 20))
+            self.title.setFont(f)
+
+        super().resizeEvent(event)

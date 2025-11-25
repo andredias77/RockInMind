@@ -3,14 +3,30 @@ import sounddevice as sd
 
 # frequências padrão (Hz)
 NOTAS_FREQ = {
-    "SOL": 98.00,
-    "MI": 82.41,
-    "RE": 73.42,
-    "DO": 65.41,
-    "SI": 61.74,
-    "LA": 55.00,
-    "A": 54,
-    "B": 53
+    "DO1": 32.70,
+    "RE1": 36.71,
+    "MI1": 41.20,
+    "FA1": 43.65,   # corrigido
+    "SOL1": 49.00,  # corrigido
+    "LA1": 55.00,
+    "SI1": 61.74,
+    "DO2": 65.41,
+    "RE2": 73.42,
+    "MI2": 82.41,
+    "FA2": 87.31,
+    "SOL2": 98.00,
+    "LA2": 110.00,
+    "SI2": 123.47,
+    "DO3": 130.81,
+    "RE3": 146.83,
+    "MI3": 164.81,
+    "FA3": 174.61,
+    "SOL3": 196.00,
+    "LA3": 220.00,
+    "SI3": 246.94,
+    "SIb3": 233.08,
+    "DO4": 261.63,
+    "REb4": 277.18,
 }
 
 # toca som de guitarra em thread separada
