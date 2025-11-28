@@ -4,13 +4,13 @@ class Musica:
         self.indice_musica = 1
     
     def guardar_indice_musica(self, index):
-        if index == "Clássico 1":
+        if index == "Smoke on the Water":
             self.indice_musica = 1
 
-        elif index == "Clássico 2":
+        elif index == "Seven Nation Army":
             self.indice_musica = 2
         
-        elif index == "Personalizada":
+        elif index == "Anunciação":
             self.indice_musica = 3
         
         else:

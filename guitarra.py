@@ -23,15 +23,17 @@ NOTAS_FREQ = {
     "FA3": 174.61,
     "SOL3": 196.00,
     "LA3": 220.00,
+    "SIB3": 233.08,
     "SI3": 246.94,
-    "SIb3": 233.08,
     "DO4": 261.63,
-    "REb4": 277.18,
+    "RE4": 293.66,    # adicionado
+    "REB4": 277.18,
+    "MI4": 329.63
 }
 
 # toca som de guitarra em thread separada
 
-def guitarra_sintetica(freqs, duracao=2, volume=0.5):
+def guitarra_sintetica(freqs, duracao=4, volume=0.5):
     fs = 44100
     t = np.linspace(0, duracao, int(fs * duracao), False)
 

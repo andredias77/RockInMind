@@ -20,7 +20,7 @@ class RockInMindGUI(QWidget):
         self.fila_serial = Queue()
 
         # --- música padrão ---
-        self.musica.guardar_indice_musica("Clássico 1")
+        self.musica.guardar_indice_musica("Some on the Water")
         self.jogo.indice_musica = self.musica.indice_musica
 
         self.setWindowTitle("Rock In Mind 🎵")
@@ -60,6 +60,8 @@ class RockInMindGUI(QWidget):
 
         self.atualizar_botoes()
         self.showMaximized()      # ocupa a tela toda
+        self.timeout_notas = {}  # armazena QTimers por nota
+        self.timeout_duracao = 1500  # 1500 ms = 1.5 s
 
 
     # ======================================================
@@ -80,7 +82,7 @@ class RockInMindGUI(QWidget):
 
         musica_label = QLabel("Música:")
         self.musica_combo = QComboBox()
-        self.musica_combo.addItems(["Clássico 1", "Clássico 2", "Personalizada"])
+        self.musica_combo.addItems(["Smoke on the Water", "Seven Nation Army", "Anunciação"])
         self.musica_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
         
         #muda a música
@@ -146,6 +148,16 @@ class RockInMindGUI(QWidget):
             notas_layout.addWidget(btn)
             self.botoes_notas[str(i+1)] = (btn, cor)
 
+        # 🔥🔥🔥 IMAGEM ROCK AQUI 🔥🔥🔥
+        self.img_rock = QLabel()
+        self.img_rock.setAlignment(Qt.AlignCenter)
+        self.img_rock.setStyleSheet("padding: 10px;")
+        
+        from PyQt5.QtGui import QPixmap
+        pix = QPixmap("assets/guitarra.png")  # <<< SUA IMAGEM AQUI
+        pix = pix.scaledToHeight(250, Qt.SmoothTransformation)
+        self.img_rock.setPixmap(pix)
+
         self.botao_voltar = QPushButton("VOLTAR")
         self.botao_voltar.setFixedSize(250, 40)
         self.botao_voltar.setStyleSheet(
@@ -153,7 +165,8 @@ class RockInMindGUI(QWidget):
         )
         self.botao_voltar.clicked.connect(lambda: (
             self.stacked.setCurrentIndex(0),
-            self.jogo.guarda_modo("jogo")
+            self.jogo.guarda_modo("jogo"),
+            self.enviar_serial("R")
         ))
 
         h_botao = QHBoxLayout()
@@ -165,6 +178,10 @@ class RockInMindGUI(QWidget):
         layout.addWidget(self.title)
         layout.addSpacing(30)
         layout.addLayout(notas_layout)
+
+        # 🔥 ADICIONAR A IMAGEM AQUI 🔥
+        layout.addWidget(self.img_rock)
+
         layout.addStretch()
         layout.addLayout(h_botao)
 
@@ -245,6 +262,8 @@ class RockInMindGUI(QWidget):
 
         if msg.endswith("H") and len(msg) > 1:
             print(msg)
+            numero = msg[:-1]
+            #self.iniciar_timeout_nota(numero)
             self.play_note(msg)      
             return
         
@@ -253,6 +272,8 @@ class RockInMindGUI(QWidget):
             low = self.fila_serial.get()
             digito = self.fila_serial.get()
             mensagem = str(digito) + str(low)
+            numero = mensagem[:-1]
+            #self.iniciar_timeout_nota(numero)
             self.play_note(mensagem)      
             return
         
@@ -262,7 +283,7 @@ class RockInMindGUI(QWidget):
             low = msg[2:]
             self.play_note(high)
             correta = self.jogo.registrar_jogada(low)
-            time.sleep(1)
+            time.sleep(0.5)
             self.play_note(low)
             if correta == 2:
                 self.enviar_serial("T")
@@ -330,6 +351,8 @@ class RockInMindGUI(QWidget):
             return
 
         limite = indice + 1
+        if idx_musica == 3:
+            limite = limite*3
         sequencia_cortada = sequencia[:limite]
         self.jogo.iniciar_rodada(sequencia_cortada)
 
@@ -341,7 +364,7 @@ class RockInMindGUI(QWidget):
         for numero, duracao in sequencia_cortada:
             numero = int(numero)
             eventos.append((f"{numero}H", duracao))   # aperta
-            eventos.append((f"{numero}L", 0.15))      # solta
+            eventos.append((f"{numero}L", 0.0002))      # solta
 
         # função recursiva para tocar cada evento com singleShot
         def tocar_proximo(i):
@@ -443,3 +466,21 @@ class RockInMindGUI(QWidget):
             self.title.setFont(f)
 
         super().resizeEvent(event)
+
+    def iniciar_timeout_nota(self, numero):
+        # Se já existir um timer para essa nota, mata ele
+        if numero in self.timeout_notas:
+            self.timeout_notas[numero].stop()
+
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: self.forcar_soltar_nota(numero))
+        timer.start(self.timeout_duracao)
+
+        self.timeout_notas[numero] = timer
+
+    def forcar_soltar_nota(self, numero):
+        print(f"[Timeout] Forçando {numero}L (não chegou L a tempo)")
+        self.play_note(f"{numero}L")
+        # envia para serial também, se fizer sentido
+        # self.enviar_serial(f"{numero}L")

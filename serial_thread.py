@@ -35,11 +35,16 @@ class SerialThread(QThread):
             print(f"[Serial] Erro: {e}")
             if self.simulate_if_error:
                 print("[Serial] Entrando no modo SIMULAÇÃO...")
-                notas = ["1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L", "1H", "1L"]
+                notas = ["#T15"]
                 while self.running:
-                    for nota in notas:
-                        self.data_received.emit(nota)
-                        time.sleep(2.0)
+                    time.sleep(5.0)
+                    self.data_received.emit("#")
+                    time.sleep(2.0)
+                    self.data_received.emit("T00")
+                    time.sleep(100000000)
+                    #for nota in notas:
+                     #   self.data_received.emit(nota)
+                      #  time.sleep(2.0)
 
     def stop(self):
         self.running = False
