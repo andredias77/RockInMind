@@ -13,6 +13,9 @@ class Musica:
         
         elif index == "Anunciação":
             self.indice_musica = 3
+
+        elif index == "Escala Musical":
+            self.indice_musica = 4
         
         else:
             self.indice_musica = 1
@@ -20,13 +23,14 @@ class Musica:
         print("Música selecionada índice =", index)
     
     def get_nome_musicas(self):
-        return ["Smoke on the Water", "Seven Nation Army", "Anunciação"]
+        return ["Smoke on the Water", "Seven Nation Army", "Anunciação", "Escala Musical"]
     
     def get_nome_imagens_musica(self):
         return [
             "assets/smoke.png",
             "assets/seven.png",
-            "assets/anunciacao.png"
+            "assets/anunciacao.png",
+            "assets/escala.png"
         ]
 
     def guardar_dificuldade(self, index):

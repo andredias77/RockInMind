@@ -75,14 +75,9 @@ class RockInMindGUI(QWidget):
         tela = QWidget()
         layout = QVBoxLayout()
 
-        titulo = QLabel("Rock In Mind 🎵")
-        titulo.setFont(QFont("Arial", 28, QFont.Bold))
-        titulo.setAlignment(Qt.AlignCenter)
-
-        modo_label = QLabel("Modo de jogo:")
-        self.modo_combo = QComboBox()
-        self.modo_combo.addItems(["1", "2", "3", "4"])
-        self.modo_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
+        self.menu_title = QLabel("Rock In Mind")
+        self.menu_title.setFont(QFont("Arial", 36, QFont.Bold))
+        self.menu_title.setAlignment(Qt.AlignCenter)
 
         # ---------------- NOVA SELEÇÃO DE MÚSICAS (3 BOTÕES COM IMAGEM) ----------------
         musica_label = QLabel("Música:")
@@ -147,9 +142,6 @@ class RockInMindGUI(QWidget):
 
         # ---------------- fim seleção de músicas ----------------
 
-        # mantém a conexão do modo
-        self.modo_combo.currentTextChanged.connect(self.on_modo_change)
-
         self.img_rock = QLabel()
         self.img_rock.setAlignment(Qt.AlignCenter)
         self.img_rock.setStyleSheet("padding: 10px;")
@@ -174,11 +166,8 @@ class RockInMindGUI(QWidget):
         h_layout_botao.addStretch()
 
         # Montagem do layout (mantive a ordem/spacing original)
-        layout.addWidget(titulo)
+        layout.addWidget(self.menu_title)
         layout.addSpacing(30)
-        layout.addWidget(modo_label)
-        layout.addWidget(self.modo_combo)
-        layout.addSpacing(20)
         layout.addWidget(musica_label)
         layout.addLayout(h_musicas)   # <-- agora os 3 botões ficam aqui
         layout.addSpacing(40)
@@ -203,9 +192,9 @@ class RockInMindGUI(QWidget):
         tela = QWidget()
         layout = QVBoxLayout()
 
-        self.title = QLabel("Rock In Mind")
-        self.title.setFont(QFont("Arial", 36, QFont.Bold))
-        self.title.setAlignment(Qt.AlignCenter)
+        self.game_title = QLabel("Rock In Mind")
+        self.game_title.setFont(QFont("Arial", 36, QFont.Bold))
+        self.game_title.setAlignment(Qt.AlignCenter)
 
         notas_layout = QHBoxLayout()
         self.botoes_notas = {}
@@ -246,7 +235,7 @@ class RockInMindGUI(QWidget):
         h_botao.addStretch()
 
         layout.addSpacing(10)
-        layout.addWidget(self.title)
+        layout.addWidget(self.game_title)
         layout.addSpacing(30)
         layout.addLayout(notas_layout)
 
@@ -477,10 +466,19 @@ class RockInMindGUI(QWidget):
                     btn.setStyleSheet(f"background-color: {cor_original}; color: black; border-radius: 20px; font-weight: bold; font-size: 18px;")
                     sd.stop()
 
+    # def mudar_cor_titulo(self):
+    #     cor = self.cores_titulo[self.cor_index]
+    #     self.title.setStyleSheet(f"color: {cor};")
+    #     self.cor_index = (self.cor_index + 1) % len(self.cores_titulo)
+
     def mudar_cor_titulo(self):
         cor = self.cores_titulo[self.cor_index]
-        self.title.setStyleSheet(f"color: {cor};")
+        if hasattr(self, "menu_title"):
+            self.menu_title.setStyleSheet(f"color: {cor};")
+        if hasattr(self, "game_title"):
+            self.game_title.setStyleSheet(f"color: {cor};")
         self.cor_index = (self.cor_index + 1) % len(self.cores_titulo)
+
 
     def closeEvent(self, event):
         self.serial_thread.stop()
