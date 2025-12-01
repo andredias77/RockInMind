@@ -11,6 +11,8 @@ import string
 import time
 from seleciona_musica import Musica
 from queue import Queue
+from PyQt5.QtGui import QPixmap
+
 
 class RockInMindGUI(QWidget):
     def __init__(self):
@@ -22,6 +24,7 @@ class RockInMindGUI(QWidget):
         # --- música padrão ---
         self.musica.guardar_indice_musica("Some on the Water")
         self.jogo.indice_musica = self.musica.indice_musica
+        self.musica.guardar_dificuldade("1")
 
         self.setWindowTitle("Rock In Mind 🎵")
         #self.setFixedSize(650, 650)
@@ -77,7 +80,7 @@ class RockInMindGUI(QWidget):
 
         modo_label = QLabel("Modo de jogo:")
         self.modo_combo = QComboBox()
-        self.modo_combo.addItems(["Jogo", "Livre"])
+        self.modo_combo.addItems(["1", "2", "3", "4"])
         self.modo_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
 
         musica_label = QLabel("Música:")
@@ -86,9 +89,18 @@ class RockInMindGUI(QWidget):
         self.musica_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
         
         #muda a música
+        self.modo_combo.currentTextChanged.connect(self.on_modo_change)
+
+        #muda a música
         self.musica_combo.currentTextChanged.connect(self.on_musica_change)
 
+        self.img_rock = QLabel()
+        self.img_rock.setAlignment(Qt.AlignCenter)
+        self.img_rock.setStyleSheet("padding: 10px;")
 
+        pix = QPixmap("assets/guitarra.png")  # <<< SUA IMAGEM AQUI
+        pix = pix.scaledToHeight(250, Qt.SmoothTransformation)
+        self.img_rock.setPixmap(pix)
 
         # --- NOVO BOTÃO ---
         self.botao_serial = QPushButton("Iniciar modo Livre")
@@ -119,6 +131,10 @@ class RockInMindGUI(QWidget):
         # O PONTO DE CORREÇÃO: Adicionar o layout do botão aqui
         layout.addSpacing(40) # Adiciona um espaçamento antes do botão
         layout.addLayout(h_layout_botao) # ADICIONA O BOTÃO AO LAYOUT PRINCIPAL
+
+        # 🔥 ADICIONAR A IMAGEM AQUI 🔥
+        layout.addSpacing(60) 
+        layout.addWidget(self.img_rock)
         layout.addStretch()
 
         tela.setLayout(layout)
@@ -153,7 +169,6 @@ class RockInMindGUI(QWidget):
         self.img_rock.setAlignment(Qt.AlignCenter)
         self.img_rock.setStyleSheet("padding: 10px;")
         
-        from PyQt5.QtGui import QPixmap
         pix = QPixmap("assets/guitarra.png")  # <<< SUA IMAGEM AQUI
         pix = pix.scaledToHeight(250, Qt.SmoothTransformation)
         self.img_rock.setPixmap(pix)
@@ -337,7 +352,7 @@ class RockInMindGUI(QWidget):
             else: 
                 self.enviar_serial("E")
                 if self.jogo.get_modo():
-                    self.stacked.setCurrentIndex(0)        
+                    self.stacked.setCurrentIndex(3)        
             return
             
 
@@ -345,14 +360,14 @@ class RockInMindGUI(QWidget):
     def tocar_sequencia(self, indice):
         indice = int(indice)
         idx_musica = self.musica.indice_musica
+        idx_dificuldade = self.musica.dificuldade
         sequencia = SEQUENCIAS.get(idx_musica)
         if not sequencia:
             print(f"[Sequência] {indice} não encontrada")
             return
 
         limite = indice + 1
-        if idx_musica == 3:
-            limite = limite*3
+        limite = limite*idx_dificuldade
         sequencia_cortada = sequencia[:limite]
         self.jogo.iniciar_rodada(sequencia_cortada)
 
@@ -428,6 +443,9 @@ class RockInMindGUI(QWidget):
         self.musica.guardar_indice_musica(texto)
         self.jogo.indice_musica = self.musica.indice_musica
         self.atualizar_botoes()
+
+    def on_modo_change(self, texto):
+        self.musica.guardar_dificuldade(texto)
     
     def atualizar_botoes(self):
         idx = self.musica.indice_musica   # 1, 2 ou 3

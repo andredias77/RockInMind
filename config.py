@@ -43,9 +43,9 @@ SEQUENCIAS = {
 }
 
 TAMANHO = {
-    1: 16,
+    1: 13,
     2: 7,
-    3: 7
+    3: 36
 }
 
 # cores das notas
