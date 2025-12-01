@@ -12,6 +12,7 @@ import time
 from seleciona_musica import Musica
 from queue import Queue
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QIcon
 
 
 class RockInMindGUI(QWidget):
@@ -83,63 +84,118 @@ class RockInMindGUI(QWidget):
         self.modo_combo.addItems(["1", "2", "3", "4"])
         self.modo_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
 
+        # ---------------- NOVA SELEÇÃO DE MÚSICAS (3 BOTÕES COM IMAGEM) ----------------
         musica_label = QLabel("Música:")
-        self.musica_combo = QComboBox()
-        self.musica_combo.addItems(["Smoke on the Water", "Seven Nation Army", "Anunciação"])
-        self.musica_combo.setStyleSheet("QComboBox { background-color: #222; color: white; padding: 4px; }")
-        
-        #muda a música
-        self.modo_combo.currentTextChanged.connect(self.on_modo_change)
+        musica_label.setFont(QFont("Arial", 12))
+        musica_label.setStyleSheet("color: white;")
+        # nomes na mesma ordem que você usava no combo (importante para manter a lógica)
+        music_names = self.musica.get_nome_musicas()
+        # paths das imagens — ajuste para os arquivos que você vai baixar
+        music_images = self.musica.get_nome_imagens_musica()
 
-        #muda a música
-        self.musica_combo.currentTextChanged.connect(self.on_musica_change)
+        # Container horizontal para os 3 botões de música
+        h_musicas = QHBoxLayout()
+        h_musicas.setSpacing(20)
+        self.musica_buttons = {}   # idx (0..2) -> QPushButton
+
+        for i, (name, img_path) in enumerate(zip(music_names, music_images)):
+
+            # widget container (empilha imagem + texto)
+            container = QWidget()
+            vbox = QVBoxLayout(container)
+            vbox.setContentsMargins(0, 0, 0, 0)
+            vbox.setSpacing(30)
+
+            # botão com a imagem
+            btn = QPushButton()
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedSize(150, 150)
+
+            pix = QPixmap(img_path)
+            if not pix.isNull():
+                icon_pix = pix.scaled(140, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                btn.setIconSize(icon_pix.size())
+                btn.setIcon(QIcon(icon_pix))
+                btn.setText("")
+            else:
+                btn.setText(name)
+
+            btn.setStyleSheet(
+                "QPushButton { border: 4px solid transparent; border-radius: 8px; background-color: transparent; }"
+            )
+
+            btn.clicked.connect(lambda _, nm=name: self.on_musica_change(nm))
+
+            # label com o nome
+            label = QLabel(name)
+            label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet("font-size: 14px; color: white;")
+
+            # adiciona no layout vertical
+            vbox.addWidget(btn, alignment=Qt.AlignCenter)
+            vbox.addWidget(label, alignment=Qt.AlignCenter)
+
+            # guarda referência ao botão (para bordas)
+            self.musica_buttons[i] = btn
+
+            # adiciona o container no layout horizontal principal
+            h_musicas.addWidget(container)
+  
+
+        # armazenar a função no self para uso posterior (quando mudarmos programa)
+        self._atualizar_visual_musicas = self.atualizar_visual_musicas
+
+        # ---------------- fim seleção de músicas ----------------
+
+        # mantém a conexão do modo
+        self.modo_combo.currentTextChanged.connect(self.on_modo_change)
 
         self.img_rock = QLabel()
         self.img_rock.setAlignment(Qt.AlignCenter)
         self.img_rock.setStyleSheet("padding: 10px;")
-
         pix = QPixmap("assets/guitarra.png")  # <<< SUA IMAGEM AQUI
-        pix = pix.scaledToHeight(250, Qt.SmoothTransformation)
+        pix = pix.scaledToHeight(180, Qt.SmoothTransformation)
         self.img_rock.setPixmap(pix)
 
         # --- NOVO BOTÃO ---
         self.botao_serial = QPushButton("Iniciar modo Livre")
         self.botao_serial.setFixedSize(250, 40)
         self.botao_serial.setStyleSheet("QPushButton { background-color: #555; color: white; border-radius: 10px; font-weight: bold; }")
-        
-        # LINHA CORRETA (CONECTA a função para execução posterior):
+
         self.botao_serial.clicked.connect(lambda: (
             self.enviar_serial("!"),
             self.stacked.setCurrentIndex(1),
             self.jogo.guarda_modo("livre")
         ))
-        
-        # Layout horizontal para centralizar o botão 👈 NOVAS LINHAS
+
         h_layout_botao = QHBoxLayout()
         h_layout_botao.addStretch()
         h_layout_botao.addWidget(self.botao_serial)
         h_layout_botao.addStretch()
-        # ------------------
 
+        # Montagem do layout (mantive a ordem/spacing original)
         layout.addWidget(titulo)
         layout.addSpacing(30)
         layout.addWidget(modo_label)
         layout.addWidget(self.modo_combo)
         layout.addSpacing(20)
         layout.addWidget(musica_label)
-        layout.addWidget(self.musica_combo)
-        # O PONTO DE CORREÇÃO: Adicionar o layout do botão aqui
-        layout.addSpacing(40) # Adiciona um espaçamento antes do botão
+        layout.addLayout(h_musicas)   # <-- agora os 3 botões ficam aqui
+        layout.addSpacing(40)
         layout.addLayout(h_layout_botao) # ADICIONA O BOTÃO AO LAYOUT PRINCIPAL
 
-        # 🔥 ADICIONAR A IMAGEM AQUI 🔥
-        layout.addSpacing(60) 
+        # ADICIONAR A IMAGEM DO MENU
+        layout.addSpacing(3)
         layout.addWidget(self.img_rock)
         layout.addStretch()
 
         tela.setLayout(layout)
+
+        self.atualizar_visual_musicas(self.musica.indice_musica)
+
         return tela
 
+    
     # ======================================================
     #  TELA 2 — JOGO (BOTÕES DAS NOTAS)
     # ======================================================
@@ -194,11 +250,13 @@ class RockInMindGUI(QWidget):
         layout.addSpacing(30)
         layout.addLayout(notas_layout)
 
-        # 🔥 ADICIONAR A IMAGEM AQUI 🔥
-        layout.addWidget(self.img_rock)
-
-        layout.addStretch()
+        # BOTÃO VOLTAR
+        layout.addSpacing(20)
         layout.addLayout(h_botao)
+
+        # IMAGEM
+        layout.addSpacing(20)
+        layout.addWidget(self.img_rock)
 
         tela.setLayout(layout)
         return tela
@@ -408,7 +466,7 @@ class RockInMindGUI(QWidget):
             if numero in self.botoes_notas:
                 btn, cor_original = self.botoes_notas[numero]
                 if estado == "H":
-                    btn.setStyleSheet("background-color: white; color: black; border-radius: 20px; font-weight: bold;")
+                    btn.setStyleSheet("background-color: white; color: black; border-radius: 20px; font-weight: bold; font-size: 24px;")
                     # toca a nota
                     onda, fs = SONS[nota]
                     sd.play(onda, fs)
@@ -416,7 +474,7 @@ class RockInMindGUI(QWidget):
                     # if freq:
                     #     threading.Thread(target=guitarra_sintetica, args=(freq,), daemon=True).start()
                 elif estado == "L":
-                    btn.setStyleSheet(f"background-color: {cor_original}; color: black; border-radius: 20px; font-weight: bold;")
+                    btn.setStyleSheet(f"background-color: {cor_original}; color: black; border-radius: 20px; font-weight: bold; font-size: 18px;")
                     sd.stop()
 
     def mudar_cor_titulo(self):
@@ -443,6 +501,8 @@ class RockInMindGUI(QWidget):
         self.musica.guardar_indice_musica(texto)
         self.jogo.indice_musica = self.musica.indice_musica
         self.atualizar_botoes()
+
+        self.atualizar_visual_musicas(texto)
 
     def on_modo_change(self, texto):
         self.musica.guardar_dificuldade(texto)
@@ -502,3 +562,37 @@ class RockInMindGUI(QWidget):
         self.play_note(f"{numero}L")
         # envia para serial também, se fizer sentido
         # self.enviar_serial(f"{numero}L")
+
+    def atualizar_visual_musicas(self, nome_musica):
+        """
+        nome_musica SEMPRE é o nome da música, ex: "Seven Nation Army"
+        Usa a classe Musica para obter o índice correto (1-based),
+        depois converte para 0-based para acessar os botões.
+        """
+
+        # usa sua própria classe Musica para descobrir o índice correto
+        self.musica.guardar_indice_musica(nome_musica)  # isto preenche self.musica.indice_musica (1,2,3)
+        idx_1_based = self.musica.indice_musica          # 1,2,3
+
+        # converter para 0-based
+        idx = idx_1_based - 1
+
+        # aplicar visual
+        for i, btn in self.musica_buttons.items():
+            if i == idx:
+                btn.setStyleSheet(
+                    "QPushButton {"
+                    "   border: 4px solid red;"
+                    "   border-radius: 8px;"
+                    "   background-color: transparent;"
+                    "}"
+                )
+            else:
+                btn.setStyleSheet(
+                    "QPushButton {"
+                    "   border: 4px solid transparent;"
+                    "   border-radius: 8px;"
+                    "   background-color: transparent;"
+                    "}"
+                )
+
