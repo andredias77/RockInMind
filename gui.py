@@ -157,7 +157,8 @@ class RockInMindGUI(QWidget):
         self.botao_serial.clicked.connect(lambda: (
             self.enviar_serial("!"),
             self.stacked.setCurrentIndex(1),
-            self.jogo.guarda_modo("livre")
+            self.jogo.guarda_modo("livre"),
+            self.enviar_serial(str(self.musica.indice_musica))
         ))
 
         h_layout_botao = QHBoxLayout()
