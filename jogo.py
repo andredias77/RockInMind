@@ -1,9 +1,8 @@
 from config import TAMANHO
 from seleciona_musica import Musica
-from config import SEQUENCIAS
 class Jogo:
 
-    def __init__(self):
+    def _init_(self):
         self.sequencia_atual = []
         self.jogadas = []
         self.livre = False
