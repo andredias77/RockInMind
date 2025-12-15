@@ -1,5 +1,6 @@
 from config import TAMANHO
 from seleciona_musica import Musica
+from config import SEQUENCIAS
 class Jogo:
 
     def __init__(self):
